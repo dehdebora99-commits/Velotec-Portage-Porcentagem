@@ -63,7 +63,7 @@
 <div class="wrap">
   <div class="card no-print">
     <h1>📊 Portage — cálculo por área e faixa etária</h1>
-    <p class="sub">Selecione as áreas e faixas etárias que deseja avaliar. Depois marque <strong>SIM</strong> somente nos objetivos que a criança realiza. O Desenvolvimento Motor foi separado em <strong>Motora ampla</strong> e <strong>Motora fina</strong> o percentual é calculado automaticamente por área e faixa etária.</p>
+    <p class="sub">Selecione as áreas e faixas etárias que deseja avaliar. Depois marque <strong>SIM</strong> somente nos objetivos que a criança realiza. O Desenvolvimento Motor foi separado em <strong>Motora ampla</strong> e <strong>Motora fina</strong> conforme a divisão informada. O percentual é calculado automaticamente por área e faixa etária.</p>
 
     <div class="grid">
       <div>
@@ -335,9 +335,20 @@ async function copiarTabela() {
     return;
   }
 
-  // Copia somente a tabela, sem título, instruções ou outros elementos.
-  const htmlTable = table.outerHTML;
-  const text = table.innerText;
+  // Copia somente a tabela, mantendo bordas/quadrantes e tornando-a editável ao colar.
+  const tabelaCopia = table.cloneNode(true);
+  tabelaCopia.style.borderCollapse = 'collapse';
+  tabelaCopia.style.fontFamily = 'Arial, sans-serif';
+  tabelaCopia.style.fontSize = '11pt';
+  tabelaCopia.style.width = '100%';
+  tabelaCopia.querySelectorAll('th, td').forEach(cell => {
+    cell.style.border = '1px solid #222';
+    cell.style.padding = '3px 6px';
+    cell.style.textAlign = 'center';
+    cell.style.height = '22px';
+  });
+  const htmlTable = tabelaCopia.outerHTML;
+  const text = tabelaCopia.innerText;
 
   try {
     await navigator.clipboard.write([
