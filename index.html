@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELOTEC — Portage</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial, sans-serif; font-size:11pt; background:#f4f6f8; color:#222; }
+  .wrap { max-width:1200px; margin:24px auto; padding:0 18px 40px; }
+  h1 { margin:0 0 6px; font-size:22px; }
+  .sub { color:#666; margin:0 0 18px; }
+  .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:18px; margin-bottom:16px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  label.title { display:block; font-weight:700; margin-bottom:8px; }
+  select, button { font:inherit; }
+  select { width:100%; padding:9px; border:1px solid #bbb; border-radius:7px; background:#fff; }
+  .ages { display:flex; flex-wrap:wrap; gap:8px; }
+  .age { border:1px solid #bbb; border-radius:7px; padding:8px 12px; cursor:pointer; background:#fff; }
+  .age input { margin-right:6px; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  button { border:0; border-radius:7px; padding:9px 14px; cursor:pointer; background:#333; color:#fff; }
+  button.secondary { background:#eee; color:#222; border:1px solid #ccc; }
+  .hint { color:#666; font-size:10pt; margin-top:8px; }
+  .area-title { margin:22px 0 10px; font-size:17px; }
+  .age-title {
+    margin:22px 0 10px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:700;
+    background:#f0f2f5;
+    border-left:5px solid #555;
+    border-top:1px solid #d5d5d5;
+    border-bottom:1px solid #d5d5d5;
+    border-radius:5px;
+  }
+  .item { display:grid; grid-template-columns:52px 1fr 70px; align-items:center; gap:10px; border-bottom:1px solid #eee; padding:8px 4px; }
+  .item .n { color:#666; }
+  .sim { display:flex; justify-content:center; align-items:center; gap:5px; font-weight:700; }
+  .sim input { width:18px; height:18px; }
+  .percent { font-weight:700; margin:10px 0; }
+  .table-wrap { overflow:auto; }
+  table { border-collapse:collapse; width:100%; min-width:600px; font-family:Arial,sans-serif; font-size:11pt; background:#fff; }
+  th, td { border:1px solid #222; padding:3px 6px; text-align:center; }
+  table th, table td { height:22px; }
+  table th:first-child, table td:first-child { width:160px; }
+  th:first-child, td:first-child { text-align:left; }
+  .editable td { outline:none; }
+  .small { font-size:10pt; color:#666; }
+  @media(max-width:700px) {
+    .grid { grid-template-columns:1fr; }
+    .item { grid-template-columns:42px 1fr 58px; }
+  }
+  @media print {
+    body { background:#fff; }
+    .no-print { display:none !important; }
+    .wrap { max-width:none; margin:0; padding:0; }
+    .card { border:0; padding:0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card no-print">
+    <h1>📊 Portage — cálculo por área e faixa etária</h1>
+    <p class="sub">Selecione as áreas e faixas etárias que deseja avaliar. Depois marque <strong>SIM</strong> somente nos objetivos que a criança realiza. O Desenvolvimento Motor foi separado em <strong>Motora ampla</strong> e <strong>Motora fina</strong> conforme a divisão informada. O percentual é calculado automaticamente por área e faixa etária.</p>
+
+    <div class="grid">
+      <div>
+        <label class="title">Áreas que deseja avaliar</label>
+        <div id="areas" class="ages"></div>
+      </div>
+      <div>
+        <label class="title">Faixas etárias que deseja avaliar</label>
+        <div id="ages" class="ages"></div>
+        <div class="hint">Você pode selecionar somente as faixas que quiser. As opções seguem o documento fornecido.</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="mostrarItens()">Mostrar objetivos</button>
+      <button onclick="adicionarAreaNaTabela()">Adicionar área à tabela</button>
+      <button class="secondary" onclick="marcarTodos(false)">Desmarcar todos os SIM</button>
+      <button class="secondary" onclick="limparTudo()">Limpar tudo</button>
+    </div>
+  </div>
+
+  <div id="objetivos"></div>
+
+  <div class="card">
+    <h2 style="font-size:18px;">Tabela de resultados</h2>
+    <p class="small">Adicione uma área por vez. A tabela vai sendo preenchida linha por linha no formato do modelo, incluindo Motora ampla e Motora fina separadamente. Ela é editável; o botão "Copiar tabela" copia somente a tabela.</p>
+    <div id="resultado" class="table-wrap"></div>
+    <div class="actions no-print">
+      <button onclick="copiarTabela()">Copiar tabela</button>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const RAW_PORTAGE = {"Socialização": {"0 a 1": [{"n": 1, "texto": "Observa uma pessoa movimentando-se em seu campo visual."}, {"n": 2, "texto": "Sorri em resposta à atenção do adulto."}, {"n": 3, "texto": "Vocaliza em resposta à atenção."}, {"n": 4, "texto": "Olha para sua própria mão, sorrindo ou vocalizando."}, {"n": 5, "texto": "Responde a seu círculo familiar, sorrindo, vocalizando ou parando de chorar."}, {"n": 6, "texto": "Sorri em resposta à expressão facial dos outros."}, {"n": 7, "texto": "Sorri e vocaliza ao ver sua imagem no espelho"}, {"n": 8, "texto": "Acaricia ou toca no rosto de adultos (puxa cabelo, nariz, óculos, etc.)."}, {"n": 9, "texto": "Estende a mão em direção a um objeto oferecido."}, {"n": 10, "texto": "Estende os braços em direção a pessoas familiares."}, {"n": 11, "texto": "Estende a mão e toca sua imagem refletida no espelho."}, {"n": 12, "texto": "Segura e examina por 1 minuto um objeto que lhe foi dado."}, {"n": 13, "texto": "Sacode ou aperta um objeto colocado em sua mão, produzindo sons involuntários."}, {"n": 14, "texto": "Brinca sozinho por 10 minutos."}, {"n": 15, "texto": "Procura contato visual quando alguém lhe dá atenção por 2 a 3 minutos."}, {"n": 16, "texto": "Brinca sozinho sem reclamar por 15 a 20 minutos, próximo de um adulto."}, {"n": 17, "texto": "Vocaliza para obter atenção."}, {"n": 18, "texto": "Imita adulto em brincadeiras de esconde-esconde."}, {"n": 19, "texto": "Bate palmas, imitando um adulto."}, {"n": 20, "texto": "Acena a mão, imitando um adulto."}, {"n": 21, "texto": "Ergue os braços para expressar “grande”, imitando um adulto."}, {"n": 22, "texto": "Oferece algo, mas nem sempre entrega."}, {"n": 23, "texto": "Abraça, acaricia e beija familiares."}, {"n": 24, "texto": "Responde ao próprio nome, olhando ou estendendo o braço para ser pego."}, {"n": 25, "texto": "Aperta ou sacode um brinquedo para produzir sons, em imitação."}, {"n": 26, "texto": "Manipula brinquedo ou objeto."}, {"n": 27, "texto": "Estende um brinquedo ou objeto a um adulto e o entrega."}, {"n": 28, "texto": "Imita movimentos de outras crianças ao brincar."}], "1 a 2": [{"n": 29, "texto": "Imita um adulto em uma tarefa simples."}, {"n": 30, "texto": "Brinca ao lado de outra criança, cada uma realizando  tarefas diferentes."}, {"n": 31, "texto": "Toma parte em uma brincadeira com outra criança por 2 a 5 minutos."}, {"n": 32, "texto": "Aceita a ausência dos pais, embora possa reclamar."}, {"n": 33, "texto": "Explora ativamente seu meio ambiente."}, {"n": 34, "texto": "Realiza atividade manipulativa com outra pessoa."}, {"n": 35, "texto": "Abraça e carrega uma boneca ou brinquedo macio."}, {"n": 36, "texto": "Repete ações que produzem risos e atenção."}, {"n": 37, "texto": "Dá um livro para que um adulto o leia ou para que ambos o compartilhem."}, {"n": 38, "texto": "Puxa uma pessoa a mostrar-lhe algo."}, {"n": 39, "texto": "Retira a mão ou diz \"não\" quando está próximo de um objeto não permitido e alguém o lembra disto."}, {"n": 40, "texto": "Quando colocado em sua cadeira, o trocador espera ser atendido."}, {"n": 41, "texto": "Brinca com 2 ou 3 crianças da sua idade."}, {"n": 42, "texto": "Compartilha um objeto ou alimento com outra criança."}, {"n": 43, "texto": "Cumprimenta colegas ou adultos quando lembrado."}], "2 a 3": [{"n": 44, "texto": "Obedece às ordens dos pais pelo menos ½ das vezes."}, {"n": 45, "texto": "Busca / leva um objeto ou pessoa, quando solicitado."}, {"n": 46, "texto": "Presta atenção à história ou música por 5 a 10 min."}, {"n": 47, "texto": "Diz \"Por favor\" ou \"Obrigado\" quando lembrado."}, {"n": 48, "texto": "Tenta ajudar os pais a executarem tarefas realizando parte da mesma."}, {"n": 49, "texto": "Brinca de usar roupas de adultos."}, {"n": 50, "texto": "Faz uma escolha quando indagado."}, {"n": 51, "texto": "Demonstra entender sentimentos, expressando-os."}], "3 a 4": [{"n": 52, "texto": "Canta e dança ao ouvir músicas."}, {"n": 53, "texto": "Segue regras de um jogo imitando ações de outras crianças."}, {"n": 54, "texto": "Cumprimenta pessoas familiares sem ser lembrado."}, {"n": 55, "texto": "Seguem regras em jogos de grupos dirigidos por adultos."}, {"n": 56, "texto": "Pede permissão para brincar com um brinquedo que está sendo usado por outra criança."}, {"n": 57, "texto": "Diz \"Por favor\" e \"Obrigado\" sem ser lembrado ½ das vezes."}, {"n": 58, "texto": "Atende ao telefone, chamando um adulto e falando com pessoas familiares."}, {"n": 59, "texto": "Espera a sua vez."}, {"n": 60, "texto": "Segue regras em jogos dirigidos por uma criança mais velha."}, {"n": 61, "texto": "Obedece às ordens de um adulto 75% das vezes."}, {"n": 62, "texto": "Permanece em seu próprio quintal ou jardim."}, {"n": 63, "texto": "Brinca perto de outras crianças conversando com elas enquanto trabalha em um projeto próprio (30 min.)."}], "4 a 5": [{"n": 64, "texto": "Pede ajuda quando está tendo dificuldades."}, {"n": 65, "texto": "Contribui para a conversa de adultos."}, {"n": 66, "texto": "Repete rimas, canções ou dança para os outros."}, {"n": 67, "texto": "Faz uma tarefa sozinha por 20 a 30 minutos."}, {"n": 68, "texto": "Pede desculpas sem ser lembrado 75% das vezes."}, {"n": 69, "texto": "Espera sua vez em brincadeiras que envolvam de 8 a 9 crianças."}, {"n": 70, "texto": "Brinca com 2 a 3 crianças por 20 min em uma atividade que envolva cooperação."}, {"n": 71, "texto": "Quando em público, apresenta um comportamento socialmente aceitável."}, {"n": 72, "texto": "Pede permissão para usar objetos dos outros em 75% das vezes."}], "5 a 6": [{"n": 73, "texto": "Manifesta seus sentimentos."}, {"n": 74, "texto": "Brinca com 4 a 5 crianças em atividade de cooperação por 20 minutos, sem supervisão."}, {"n": 75, "texto": "Explica aos outros as regras do jogo ou atividade."}, {"n": 76, "texto": "Imita papéis de adulto."}, {"n": 77, "texto": "Colabora para a conversa durante as refeições."}, {"n": 78, "texto": "Segue regras de jogo que envolvam raciocínio verbal."}, {"n": 79, "texto": "Conforta colegas quando estes estão tristes."}, {"n": 80, "texto": "Escolhe seus próprios amigos."}, {"n": 81, "texto": "Planeja e constrói, usando ferramentas simples."}, {"n": 82, "texto": "Estabelece metas para si próprio e executa atividade para atingi-las."}, {"n": 83, "texto": "Dramatiza trechos de histórias, desempenhando um papel ou utilizando fantoches."}]}, "Linguagem": {"0 a 1": [{"n": 1, "texto": "Repete sons emitidos por outras pessoas."}, {"n": 2, "texto": "Repete a mesma sílaba 2 a 3 vezes."}, {"n": 3, "texto": "Responde a gestos com gestos."}, {"n": 4, "texto": "Obedece a uma ordem simples, quando acompanhada de gestos indicativos."}, {"n": 5, "texto": "Interrompe a atividade quando lhe dizem \"Não\" 75% das vezes."}, {"n": 6, "texto": "Responde a perguntas simples com respostas não verbais."}, {"n": 7, "texto": "Combina 2 sílabas diferentes quando tenta verbalizar."}, {"n": 8, "texto": "Imita padrões de entonação da voz de outras pessoas."}, {"n": 9, "texto": "Usa uma palavra funcionalmente para indicar objetos ou pessoas."}, {"n": 10, "texto": "Vocaliza em resposta à fala de outras pessoas."}], "1 a 2": [{"n": 11, "texto": "Diz 5 palavras diferentes."}, {"n": 12, "texto": "Pede \"mais\"."}, {"n": 13, "texto": "Diz \"acabou\"."}, {"n": 14, "texto": "Obedece a 3 ordens diferentes que não são acompanhadas de gestos indicativos."}, {"n": 15, "texto": "Consegue \"dar\" ou \"mostrar\" quando solicitado."}, {"n": 16, "texto": "Aponta para 12 objetos quando nomeados."}, {"n": 17, "texto": "Aponta para 3 a 5 figuras em um livro."}, {"n": 18, "texto": "Aponta para 3 partes de seu próprio corpo."}, {"n": 19, "texto": "Diz seu nome ou apelido quando solicitado."}, {"n": 20, "texto": "Responde à pergunta \"O que é isto?\""}, {"n": 21, "texto": "Combina palavras e gestos para expressar desejos."}, {"n": 22, "texto": "Nomeia 5 membros da família, incluindo animais."}, {"n": 23, "texto": "Nomeia 4 brinquedos."}, {"n": 24, "texto": "Produz sons de animais, ou os nomeia pelo som."}, {"n": 25, "texto": "Pede alimentos conhecidos pelo nome, quando mostrados."}, {"n": 26, "texto": "Faz perguntas variando a entonação da voz."}, {"n": 27, "texto": "Nomeia 3 partes do corpo em uma boneca ou outra pessoa."}, {"n": 28, "texto": "Responde a perguntas de sim / não."}], "2 a 3": [{"n": 29, "texto": "Combina substantivos ou adjetivos e substantivos em frases de 2 palavras."}, {"n": 30, "texto": "Combina substantivo e verbo em frases de 2 palavras"}, {"n": 31, "texto": "Usa uma palavra para indicar que quer ir ao banheiro"}, {"n": 32, "texto": "Aponta"}, {"n": 33, "texto": "Combina 2 palavras para expressar posse."}, {"n": 34, "texto": "Emprega \"não\" na fala."}, {"n": 35, "texto": "Responde à pergunta \"O que .... está fazendo?\" para atividade habitual."}, {"n": 36, "texto": "Responde a perguntas tipo \"Onde está o objecto?\""}, {"n": 37, "texto": "Nomeia sons ambientais familiares."}, {"n": 38, "texto": "Dá mais de um objeto quando se usa a forma plural na solicitação."}, {"n": 39, "texto": "Ao falar, refere-se a si próprio pelo nome."}, {"n": 40, "texto": "Aponta para figuras de objetos comuns descritos pelo uso (até 10) (\"O que se usa pra comer? = colher\")"}, {"n": 41, "texto": "Mostra a idade pelos dedos."}, {"n": 42, "texto": "Diz seu sexo quando solicitado."}, {"n": 43, "texto": "Obedece à sequência de duas ordens relacionadas."}, {"n": 44, "texto": "Usa a forma do verbo no gerúndio."}, {"n": 45, "texto": "Emprega formas regulares no plural."}, {"n": 46, "texto": "Emprega algumas formas irregulares de verbos no passado de forma sistemática."}, {"n": 47, "texto": "Faz perguntas do tipo \"O que é isso?\""}, {"n": 48, "texto": "Controla o volume da voz 90% das vezes."}, {"n": 49, "texto": "Usa \"este / esta\" e \"aquele / aquela\" na fala."}, {"n": 50, "texto": "Emprega \"é\" e \"está\" em frases simples."}, {"n": 51, "texto": "Diz \"eu\", \"mim\", \"meu\" ao invés do próprio nome."}, {"n": 52, "texto": "Aponta objetos e diz que eles não são outras coisas."}, {"n": 53, "texto": "Responde à pergunta \"Quem?\" dando um nome."}, {"n": 54, "texto": "Emprega as formas possessivas dos substantivos."}, {"n": 55, "texto": "Usa artigos ao falar."}, {"n": 56, "texto": "Usa substantivos que indicam grupo ou categoria."}, {"n": 57, "texto": "Usa os verbos \"ser\", \"estar\" e \"ter\" no presente com poucos erros."}, {"n": 58, "texto": "Diz se os objetos estão abertos ou fechados."}], "3 a 4": [{"n": 59, "texto": "Expressa diminutivos e aumentativos quando fala."}, {"n": 60, "texto": "Presta atenção por 5 minutos a uma estória lida."}, {"n": 61, "texto": "Obedece à sequência de 2 ordens não relacionadas."}, {"n": 62, "texto": "Diz seu nome completo quando solicitado."}, {"n": 63, "texto": "Responder perguntas simples envolvendo \"Como\"."}, {"n": 64, "texto": "Emprega verbos regulares, no passado."}, {"n": 65, "texto": "Relata experiências imediatas."}, {"n": 66, "texto": "Diz como são usados objetos comuns."}, {"n": 67, "texto": "Expressa ações futuras empregando os verbos \"ir\", \"ter\" e \"querer\"."}, {"n": 68, "texto": "Utiliza adequadamente masculino e feminino na fala."}, {"n": 69, "texto": "Usa formas imperativas de verbos ao pedir favores."}, {"n": 70, "texto": "Conta 2 fatos na ordem de ocorrência."}], "4 a 5": [{"n": 71, "texto": "Obedece a uma sequência envolvendo 3 ordens."}, {"n": 72, "texto": "Demonstra compreensão de verbos reflexivos, usando-os ocasionalmente (ex. ele se machucou)."}, {"n": 73, "texto": "Consegue identificar objetos / figuras que formam par, sob solicitação."}, {"n": 74, "texto": "Emprega o futuro ao falar."}, {"n": 75, "texto": "Usa orações compostas por coordenação."}, {"n": 76, "texto": "Consegue identificar a parte de cima e de baixo de objetos, quando solicitado."}, {"n": 77, "texto": "Emprega ocasionalmente o condicional ao falar (poderia, pudesse, iria, seria, faria)."}, {"n": 78, "texto": "Consegue identificar absurdos em figuras."}, {"n": 79, "texto": "Emprega as seguintes palavras: irmão, avô, avó."}, {"n": 80, "texto": "Completa frases com antônimos."}, {"n": 81, "texto": "Relata uma estória conhecida sem ajuda de figuras."}, {"n": 82, "texto": "Em uma figura, nomeia o objeto que não pertence a uma determinada categoria."}, {"n": 83, "texto": "Diz se duas palavras rimam ou não."}, {"n": 84, "texto": "Usa frases complexas, compostas por subordinação."}, {"n": 85, "texto": "Diz se um som é forte ou fraco."}], "5 a 6": [{"n": 86, "texto": "Consegue indicar alguns, muitos e vários elementos."}, {"n": 87, "texto": "Diz seu endereço."}, {"n": 88, "texto": "Diz o número de seu telefone."}, {"n": 89, "texto": "Aponta para o conjunto que tem mais, menos ou poucos elementos."}, {"n": 90, "texto": "Conta piadas simples."}, {"n": 91, "texto": "Relata experiências diárias."}, {"n": 92, "texto": "Descreve um local ou movimento: através ou entre, longe de, de / desde..., para, por cima de, até."}, {"n": 93, "texto": "Responde à pergunta \"Porque\" com uma explicação."}, {"n": 94, "texto": "Ordena e conta uma estória de 2 a 5 episódios na seqüência correta."}, {"n": 95, "texto": "Define palavras."}, {"n": 96, "texto": "Responde adequadamente a pergunta \"Qual o contrário de ...\"."}, {"n": 97, "texto": "Responde a pergunta \"O que acontece se...\"."}, {"n": 98, "texto": "Usa \"ontem\" e “amanhã’, corretamente”."}, {"n": 99, "texto": "Pergunta o significado de perguntas novas ou conhecidas."}]}, "Cognição": {"0 a 1": [{"n": 1, "texto": "Remove um pano do rosto que obscurece sua visão."}, {"n": 2, "texto": "Procura com o olhar um objeto que foi tirado de seu campo visual."}, {"n": 3, "texto": "Remove um objeto de um recipiente colocando a mão dentro do mesmo."}, {"n": 4, "texto": "Coloca um objeto em um recipiente imitando um adulto."}, {"n": 5, "texto": "Coloca um objeto em um recipiente quando recebe instruções."}, {"n": 6, "texto": "Balança um brinquedo que produz som, pendurado em um barbante."}, {"n": 7, "texto": "Coloca três objetos em um recipiente e o esvazia."}, {"n": 8, "texto": "Transfere um objeto de uma mão para outra para apanhar outro objeto."}, {"n": 9, "texto": "Deixa cair e apanhar um brinquedo."}, {"n": 10, "texto": "Descobre um objeto escondido sob um recipiente."}, {"n": 11, "texto": "Empurra 3 blocos como se fosse um comboio."}, {"n": 12, "texto": "Remove um círculo de uma prancha, por imitação."}, {"n": 13, "texto": "Coloca um pino redondo em uma prancha de pinos, quando solicitado."}, {"n": 14, "texto": "Executa gestos simples quando requisitado."}], "1 a 2": [{"n": 15, "texto": "Retira 6 objetos de um recipiente, um por vez."}, {"n": 16, "texto": "Aponta para uma parte do corpo."}, {"n": 17, "texto": "Empilha 3 blocos, dada a ordem."}, {"n": 18, "texto": "Emparelha objetos semelhantes."}, {"n": 19, "texto": "Faz rabiscos no papel."}, {"n": 20, "texto": "Aponta para si quando perguntam \"Cadê o Fulano?\""}, {"n": 21, "texto": "Coloca 5 pinos redondos, dada a ordem."}, {"n": 22, "texto": "Emparelha objetos com a figura do mesmo nome."}, {"n": 23, "texto": "Aponta para a figura nomeada."}, {"n": 24, "texto": "Vira as páginas de um livro (2/3 por vez) para encontrar a figura nomeada."}], "2 a 3": [{"n": 25, "texto": "Encontra determinado livro quando solicitado."}, {"n": 26, "texto": "Completa um quebra-cabeça de encaixe de 3 peças."}, {"n": 27, "texto": "Nomeia 4 objetos comuns em figuras."}, {"n": 28, "texto": "Desenha uma linha vertical imitando um adulto."}, {"n": 29, "texto": "Desenha uma linha vertical imitando um adulto."}, {"n": 30, "texto": "Copia um círculo."}, {"n": 31, "texto": "Emparelhar objetos com a mesma textura."}, {"n": 32, "texto": "Desenha uma linha vertical imitando um adulto."}, {"n": 33, "texto": "Desenha (+) imitando um adulto."}, {"n": 34, "texto": "Emparelha 3 cores."}, {"n": 35, "texto": "Coloca objetos dentro, em cima e embaixo de um recipiente, dada a ordem."}, {"n": 36, "texto": "Nomeia objetos quando ouve o barulho que fazem."}, {"n": 37, "texto": "Monta um brinquedo de encaixe de 4 peças."}, {"n": 38, "texto": "Nomeia ações em figuras (\"O que ... está fazendo?\")."}, {"n": 39, "texto": "Emparelha de forma geométrica com a figura da mesma."}, {"n": 40, "texto": "Empilha 5 ou mais argolas em uma vara na ordem."}], "3 a 4": [{"n": 41, "texto": "Nomeia objetos como sendo grandes ou pequenos."}, {"n": 42, "texto": "Aponta para 10 partes do corpo quando requisitado."}, {"n": 43, "texto": "Aponta para menino e menina, dada a ordem."}, {"n": 44, "texto": "Diz se um objeto é pesado ou leve."}, {"n": 45, "texto": "Une 2 partes de uma figura para formar o todo."}, {"n": 46, "texto": "Descreve 2 eventos ou personagens de uma história familiar ou programa de televisão."}, {"n": 47, "texto": "Repete brincadeiras (rimas e canções) que envolvam movimentos coordenados."}, {"n": 48, "texto": "Emparelha 3 ou mais objetos"}, {"n": 49, "texto": "Aponta para objetos compridos ou curtos."}, {"n": 50, "texto": "Associa objetos correspondentes. Ex: meia/sapato."}, {"n": 51, "texto": "Conta até 3 imitando um adulto."}, {"n": 52, "texto": "Associa objetos correspondentes. Ex: meia/sapato."}, {"n": 53, "texto": "Traça um (V) em imitação."}, {"n": 54, "texto": "Traça uma linha diagonal dado o exemplo."}, {"n": 55, "texto": "Conta até 10 objetos, imitando um adulto."}, {"n": 56, "texto": "Constrói uma ponte com 3 blocos por imitação."}, {"n": 57, "texto": "Emparelha uma sequência ou padrão (tamanho, cor) de blocos ou contas."}, {"n": 58, "texto": "Copia uma série de (V) interligados."}, {"n": 59, "texto": "Acrescenta perna ou braço em um desenho incompleto da figura humana."}, {"n": 60, "texto": "Completa um quebra-cabeças de 6 peças."}, {"n": 61, "texto": "Indica se os objetos são iguais ou diferentes."}, {"n": 62, "texto": "Desenha um quadrado imitando um adulto."}, {"n": 63, "texto": "Nomeia 3 cores sendo requisitado."}, {"n": 64, "texto": "Nomeia 3 formas geométricas (quadrado, triângulo e círculo)."}], "4 a 5": [{"n": 65, "texto": "Apanha de 1 a 5 objetos quando solicitado."}, {"n": 66, "texto": "Nomeia 5 texturas diferentes."}, {"n": 67, "texto": "Copia um triângulo ao ser requisitado."}, {"n": 68, "texto": "Recorda-se de 4 objetos que haviam sido vistos em uma figura."}, {"n": 69, "texto": "Diz o momento do dia associado a cada atividade."}, {"n": 70, "texto": "Repete rimas familiares."}, {"n": 71, "texto": "Diz se um objeto é mais pesado ou mais leve (objetos com diferença de 0,5 quilo)."}, {"n": 72, "texto": "Diz o que está faltando quando um objeto é retirado de um grupo de 3 objetos."}, {"n": 73, "texto": "Nomeia 8 cores."}, {"n": 74, "texto": "Identifica o valor de 3 moedas."}, {"n": 75, "texto": "Emparelha símbolos (letras e números)."}, {"n": 76, "texto": "Diz a cor dos objetos nomeados."}, {"n": 77, "texto": "Relata os 5 principais fatos de uma história contada 3x."}, {"n": 78, "texto": "Desenha figura humana (cabeça, tronco e 4 membros)"}, {"n": 79, "texto": "Canta 5 estrofes de uma canção."}, {"n": 80, "texto": "Constrói uma pirâmide de 10 blocos por imitação."}, {"n": 81, "texto": "Nomeia objetos como sendo compridos ou curtos."}, {"n": 82, "texto": "Coloca objetos \"atrás\", \"ao lado\" ou \"junto\" a outros."}, {"n": 83, "texto": "Faz conjuntos iguais de 10 objetos, segundo modelo."}, {"n": 84, "texto": "Nomeia ou aponta para a parte ausente da figura."}, {"n": 85, "texto": "Conta de 1 a 20."}, {"n": 86, "texto": "Identifica o objeto que está colocado no meio, em primeiro e em último lugar."}], "5 a 6": [{"n": 87, "texto": "Conta até 20 objetos e responde adequadamente à pergunta: \"Quantos ... você contou?\""}, {"n": 88, "texto": "Nomeia 10 numerais."}, {"n": 89, "texto": "Identifica qual a sua esquerda e qual a sua direita."}, {"n": 90, "texto": "Diz as vogais em ordem."}, {"n": 91, "texto": "Escreve seu nome com letras de forma."}, {"n": 92, "texto": "Nomeia 5 letras do alfabeto."}, {"n": 93, "texto": "Ordena objetos em seqüência de comprimento e largura."}, {"n": 94, "texto": "Nomeia as letras maiúsculas do alfabeto."}, {"n": 95, "texto": "Coloca numerais de 1 a 10 na sequência correta."}, {"n": 96, "texto": "Identifica a posição de objetos em 1º, 2º e 3º lugar."}, {"n": 97, "texto": "Nomeia as letras minúsculas do alfabeto."}, {"n": 98, "texto": "Emparelha letras maiúsculas com minúsculas."}, {"n": 99, "texto": "Aponta para numerais de 1 a 25."}, {"n": 100, "texto": "Copia um losango."}, {"n": 101, "texto": "Completa um labirinto simples."}, {"n": 102, "texto": "Diz os dias da semana na ordem."}, {"n": 103, "texto": "Soma e subtrai combinações de até 3 elementos."}, {"n": 104, "texto": "Diz o mês e o dia de seu aniversário."}, {"n": 105, "texto": "Lê 10 palavras impressas."}, {"n": 106, "texto": "Prediz o que vai ocorrer."}, {"n": 107, "texto": "Aponta para objetos inteiros e partidos ao meio."}, {"n": 108, "texto": "Conta de memória de 1 a 100 (pedir que pare no 40, e continue no 80, caso não erre até o 40)."}]}, "Autocuidados": {"0 a 1": [{"n": 1, "texto": "Suga e deglute líquidos."}, {"n": 2, "texto": "Toma mingau / sopinha."}, {"n": 3, "texto": "Estende as mãos em direção a mamadeira, tentando pegá-la."}, {"n": 4, "texto": "Come alimentos liquidificados dados pelos pais."}, {"n": 5, "texto": "Segura a mamadeira sem ajuda enquanto bebe."}, {"n": 6, "texto": "Leva a mamadeira até a boca ou a recusa, empurrando-a."}, {"n": 7, "texto": "Come alimentos amassados dados pelos pais."}, {"n": 8, "texto": "Bebe em uma caneca, segurada pelos pais."}, {"n": 9, "texto": "Come alimentos semi-sólidos dados pelos pais."}, {"n": 10, "texto": "Alimenta-se sozinho usando os dedos."}, {"n": 11, "texto": "Segura a caneca com ambas as mãos e bebe."}, {"n": 12, "texto": "Leva a colher cheia de comida até a boca com ajuda."}, {"n": 13, "texto": "Estica braços e pernas ao ser vestido."}], "1 a 2": [{"n": 14, "texto": "Come com colher de modo independente."}, {"n": 15, "texto": "Segura a caneca com uma só mão e bebe."}, {"n": 16, "texto": "Coloca a mão na água e dá tapinhas no rosto com as mãos molhadas, imitando alguém."}, {"n": 17, "texto": "Senta-se em um piniquinho por 5 min."}, {"n": 18, "texto": "Coloca um chapéu na cabeça e o remove."}, {"n": 19, "texto": "Tira as meias."}, {"n": 20, "texto": "Empurra os braços pelas mangas e os pés pelas pernas da calça."}, {"n": 21, "texto": "Tira os sapatos quando os cordões estiverem desamarrados"}, {"n": 22, "texto": "Tira o casaco quando desabotoado."}, {"n": 23, "texto": "Tira a calça quando desabotoada."}, {"n": 24, "texto": "Enxuga o rosto"}, {"n": 25, "texto": "Utiliza palavras ou gestos e de ir indicando necessidade banheiro."}], "2 a 3": [{"n": 26, "texto": "Alimenta-se sozinho usando colher ou caneca, derrubando um pouco de comida ou derramando pouco líquido."}, {"n": 27, "texto": "Quando recebe uma toalha, enxuga as mãos e o rosto com ajuda."}, {"n": 28, "texto": "Suga líquido do copo ou caneca usando canudinho."}, {"n": 29, "texto": "Dá garfadas."}, {"n": 30, "texto": "Mastiga e engole apenas substâncias comestíveis."}, {"n": 31, "texto": "Enxugue as mãos sem ajuda ao lhe darem uma toalha."}, {"n": 32, "texto": "Avisa que quer ir ao banheiro, mesmo sendo tarde demais."}, {"n": 33, "texto": "Controla sua babá."}, {"n": 34, "texto": "Urina ou defeca quando colocado no piniquinho pelo menos 3 vezes por semana."}, {"n": 35, "texto": "Calça os sapatos."}, {"n": 36, "texto": "Escova os dentes imitando um adulto."}, {"n": 37, "texto": "Retira roupas simples que foram desabotoadas."}, {"n": 38, "texto": "Usa o banheiro para defecar(falha apenas 1x por semana)."}, {"n": 39, "texto": "Obtém água de uma torneira sem ajuda."}, {"n": 40, "texto": "Lava as mãos e o rosto com um sabonete."}, {"n": 41, "texto": "Avisa que quer ir ao banheiro durante o dia a tempo."}, {"n": 42, "texto": "Pendura o casaco em um gancho da sua altura."}, {"n": 43, "texto": "Permanece seco ao dormir durante o dia."}, {"n": 44, "texto": "Evita riscos, por ex: pontas em móveis e escadas sem corrimão."}, {"n": 45, "texto": "Usa guardanapos quando recomendado."}, {"n": 46, "texto": "Espeta o garfo na comida, levando-a à boca."}, {"n": 47, "texto": "Despeje o líquido de uma pequena jarra para o copo sem ajuda."}, {"n": 48, "texto": "Desprende roupas presas com o feixe de pressão."}, {"n": 49, "texto": "Lava seus braços e pernas ao lhe darem banho."}, {"n": 50, "texto": "Coloca meias."}, {"n": 51, "texto": "Veste casaco, malha ou camisa."}, {"n": 52, "texto": "Identifica a parte dianteira da roupa."}], "3 a 4": [{"n": 53, "texto": "Alimenta-se sozinho por toda a refeição."}, {"n": 54, "texto": "Veste-se só, precisando de ajuda apenas quanto há malhas ou camisetas com golas fechadas ou botões e fechos."}, {"n": 55, "texto": "Enxuga o nariz quando lembrado."}, {"n": 57, "texto": "Se menino, urina no sanitário, em pé."}, {"n": 58, "texto": "Veste-se e despe-se sozinho, exceto quanto à botões e fechos em 75% das vezes."}, {"n": 59, "texto": "Fecha a roupa com fechos de pressão ou de gancho."}, {"n": 60, "texto": "Assoa o nariz quando lembrado."}, {"n": 61, "texto": "Evita perigos corriqueiros, por ex: caco de vidro."}, {"n": 62, "texto": "Pendura roupa no cabide e põe no armário quando pedem."}, {"n": 63, "texto": "Escova os dentes quando recebe instrução."}, {"n": 64, "texto": "Coloca luvas."}, {"n": 65, "texto": "Desabotoa botões grandes."}, {"n": 66, "texto": "Abotoa botões grandes."}, {"n": 67, "texto": "Calça botas."}], "4 a 5": [{"n": 68, "texto": "Limpa o que derramou por conta própria."}, {"n": 69, "texto": "Evita veneno e todas as substâncias prejudiciais."}, {"n": 70, "texto": "Desabotoa sua roupa."}, {"n": 71, "texto": "Abotoa sua roupa."}, {"n": 72, "texto": "Retira prato e talheres da mesa."}, {"n": 73, "texto": "Encaixa fecho em sua terminação."}, {"n": 74, "texto": "Lava as mãos e o rosto."}, {"n": 75, "texto": "Usa talher apropriado para alimentar-se."}, {"n": 76, "texto": "Acorda de noite para ir ao banheiro, ou acorda seco."}, {"n": 77, "texto": "Limpa e assua o nariz em 75% das vezes sem ser lembrado"}, {"n": 78, "texto": "Toma banho só, precisando de ajuda apenas para lavar as costas, pescoço e orelhas."}, {"n": 79, "texto": "Usa faca para espalhar manteiga no pão."}, {"n": 80, "texto": "Aperta e afrouxa cintos ou fivelas."}, {"n": 81, "texto": "Veste-se sozinho, mas não dá laços."}, {"n": 82, "texto": "Serve-se à mesa enquanto seguram a travessa de comida."}, {"n": 83, "texto": "Ajuda a pôr a mesa corretamente quando recebe instruções."}, {"n": 84, "texto": "Escova os dentes."}, {"n": 85, "texto": "Vai ao banheiro a tempo, retira a roupa, usa papel higiênico, dá descarga e veste-se sem ajuda."}, {"n": 86, "texto": "Penteia ou escova cabelos."}, {"n": 87, "texto": "Pendura roupas em cabides."}, {"n": 88, "texto": "Anda pela vizinhança sem constante supervisão."}, {"n": 89, "texto": "Enfia cordões em sapatos."}, {"n": 90, "texto": "Amarra ou dá laços nos cordões dos sapatos."}], "5 a 6": [{"n": 91, "texto": "É responsável por uma tarefa semanal e a executa ao ser lembrado."}, {"n": 92, "texto": "Seleciona roupas apropriadas ao clima e ocasião."}, {"n": 93, "texto": "Pára no passeio, olha para ambos os lados, e atravessa a rua sem precisar ser lembrado."}, {"n": 94, "texto": "Serve-se à mesa e passa aos demais a panela de comida."}, {"n": 95, "texto": "Prepara sua própria caneca de café com leite."}, {"n": 96, "texto": "É responsável por uma tarefa diária em casa."}, {"n": 97, "texto": "Ajusta a temperatura da água para o banho."}, {"n": 98, "texto": "Prepara seu próprio lanche."}, {"n": 99, "texto": "Anda sozinho até a distância de 2 quadras de casa."}, {"n": 100, "texto": "Corta alimentos tenros com faca."}, {"n": 101, "texto": "Encontra o banheiro em local público, corretamente."}, {"n": 102, "texto": "Abre a embalagem de leite."}, {"n": 103, "texto": "Apanha uma bandeja com comida, levando-a e pondo sobre a mesa."}, {"n": 104, "texto": "Amarra os cordões em casacos com capuz."}, {"n": 105, "texto": "Aperta o cinto de segurança do automóvel."}]}, "Desenvolvimento motor": {"0 a 1": [{"n": 1, "texto": "Alcança um objeto colocado à sua frente (15 a 20 cm.)."}, {"n": 2, "texto": "Apanha um objeto colocado à sua frente (8 cm.)."}, {"n": 3, "texto": "Estende os braços em direção a um objeto à sua frente e o apanha."}, {"n": 4, "texto": "Alcança um objeto preferido."}, {"n": 5, "texto": "Coloca objetos na boca."}, {"n": 6, "texto": "Eleva a cabeça e o tronco apoiando-se nos braços, ao estar deitado de barriga para baixo."}, {"n": 7, "texto": "Levanta a cabeça e o tronco apoiando-se em um só braço."}, {"n": 8, "texto": "Toca e explora objetos com a boca."}, {"n": 9, "texto": "Em DV (decúbito ventral), vira de lado e mantém esta posição ½ das vezes."}, {"n": 10, "texto": "Em DV, vira de costas."}, {"n": 11, "texto": "Em DV, move-se para frente o equivalente a sua altura."}, {"n": 12, "texto": "Em DD (decúbito dorsal), rola para o lado."}, {"n": 13, "texto": "Em DD, vira de barriga para baixo."}, {"n": 14, "texto": "Faz esforço para sentar-se, segurando nos dedos do adulto."}, {"n": 15, "texto": "Vira a cabeça com facilidade quando o corpo está apoiado."}, {"n": 16, "texto": "Mantém-se sentado por 2 minutos."}, {"n": 17, "texto": "Solta um objeto para apanhar outro."}, {"n": 18, "texto": "Apanha e deixa cair um objeto propositalmente."}, {"n": 19, "texto": "Fica em pé com o máximo de apoio."}, {"n": 20, "texto": "Estando em pé com apoio, pula para cima e para baixo."}, {"n": 21, "texto": "Engatinha para apanhar um objeto (distante a sua altura)."}, {"n": 22, "texto": "Senta-se apoiando-se sozinho."}, {"n": 23, "texto": "Estando sentado, vira de gatinhas."}, {"n": 24, "texto": "Estando em DV consegue sentar-se."}, {"n": 25, "texto": "Senta-se sem o apoio das mãos."}, {"n": 26, "texto": "Atira objetos ao acaso."}, {"n": 27, "texto": "Balança para frente e para trás quando de gatinhas."}, {"n": 28, "texto": "Transfere objetos de uma mão para outra quando sentado."}, {"n": 29, "texto": "Retém em uma das mãos 2 cubos de 2,5 cm."}, {"n": 30, "texto": "Fica de joelhos."}, {"n": 31, "texto": "Fica em pé, apoiando-se em algo."}, {"n": 32, "texto": "Usa preensão de pinça para pegar objetos."}, {"n": 33, "texto": "Engatinha."}, {"n": 34, "texto": "Estando de gatinhas, estende uma das mãos para o alto."}, {"n": 35, "texto": "Fica em pé com o mínimo de apoio."}, {"n": 36, "texto": "Lambe a comida ao redor da boca."}, {"n": 37, "texto": "Mantém-se em pé sozinho por um minuto."}, {"n": 38, "texto": "Derruba um objeto que está dentro de um recipiente."}, {"n": 39, "texto": "Vira várias páginas de um livro ao mesmo tempo."}, {"n": 40, "texto": "Escava com uma colher ou pá."}, {"n": 41, "texto": "Coloca pequenos objetos dentro do recipiente."}, {"n": 42, "texto": "Estando de pé, abaixa-se e senta."}, {"n": 43, "texto": "Bate palmas."}, {"n": 44, "texto": "Anda com um mínimo de apoio."}, {"n": 45, "texto": "Dá alguns passos sem apoio."}], "1 a 2": [{"n": 46, "texto": "Sobe escadas engatinhando."}, {"n": 47, "texto": "Coloca-se em pé, estando sentado."}, {"n": 48, "texto": "Rola uma bola imitando um adulto."}, {"n": 49, "texto": "Sobe em uma cadeira de adulto, vira-se e senta."}, {"n": 50, "texto": "Coloca 4 aros em uma pequena estaca."}, {"n": 51, "texto": "Retira pinos de 2,5 cm de uma prancha ou tabuleiro."}, {"n": 52, "texto": "Encaixa pinos de 2,5 cm em uma prancha de encaixe."}, {"n": 53, "texto": "Constrói uma torre de 3 blocos."}, {"n": 54, "texto": "Faz traços no papel com lápis ou lápis de cera."}, {"n": 55, "texto": "Anda sozinho."}, {"n": 56, "texto": "Desce escadas sentado, colocando primeiro os pés."}, {"n": 57, "texto": "Senta-se em uma cadeirinha."}, {"n": 58, "texto": "Agacha-se e volta a ficar em pé."}, {"n": 59, "texto": "Empurra e puxa brinquedos ao andar."}, {"n": 60, "texto": "Usa cadeira ou cavalo de balanço."}, {"n": 61, "texto": "Sobe escadas com ajuda."}, {"n": 62, "texto": "Dobra o corpo sem cair para apanhar objetos no chão."}, {"n": 63, "texto": "Imita um movimento circular."}], "2 a 3": [{"n": 64, "texto": "Enfia 4 contas grandes em um cordão em 2 minutos."}, {"n": 65, "texto": "Vira trincos e maçanetas em portas."}, {"n": 66, "texto": "Salta no mesmo local com ambos os pés."}, {"n": 67, "texto": "Faz traços no papel com lápis ou lápis de cera."}, {"n": 68, "texto": "Desce as escadas sem ajuda."}, {"n": 69, "texto": "Atire uma bola a um adulto à 1 ½ de distância."}, {"n": 70, "texto": "Constrói uma torre de 5 a 6 blocos."}, {"n": 71, "texto": "Vira páginas de um livro, uma por vez."}, {"n": 72, "texto": "Desembrulha um pequeno objeto."}, {"n": 73, "texto": "Dobra um papel ao meio, imitando um adulto."}, {"n": 74, "texto": "Desmancha e reconstrói brinquedos de encaixe por pressão."}, {"n": 75, "texto": "Desenrola brinquedos que se encaixam por roscas."}, {"n": 76, "texto": "Chuta uma bola grande que está imóvel."}, {"n": 77, "texto": "Faz bolas de argila, barro ou massinha."}, {"n": 78, "texto": "Segura o lápis entre o polegar e o indicador, apoiando-o sobre o dedo médio."}, {"n": 79, "texto": "Dá cambalhota para frente com ajuda."}, {"n": 80, "texto": "Dá marteladas para encaixar 5 pinos em seus orifícios."}], "3 a 4": [{"n": 81, "texto": "Faz um quebra cabeça de 3 peças."}, {"n": 82, "texto": "Cortar algo em pedaços com tesoura."}, {"n": 83, "texto": "Pula de uma altura de 20 cm."}, {"n": 84, "texto": "Chuta uma bola grande quando enviada para si."}, {"n": 85, "texto": "Anda na ponta dos pés."}, {"n": 86, "texto": "Corre 10 passos coordenando e alternando o movimento dos braços e pés."}, {"n": 87, "texto": "Pedala com triciclo a distância de 1 metro e ½."}, {"n": 88, "texto": "Balança em um balanço quando este está em movimento."}, {"n": 89, "texto": "Sobe em um escorregador de 1,20m a 1,80m e escorrega."}, {"n": 90, "texto": "Dá cambalhotas para frente."}, {"n": 91, "texto": "Sobe escadas alternando os pés."}, {"n": 92, "texto": "Marcha (anda de forma ritmada)."}, {"n": 93, "texto": "Apara a bola com ambas as mãos."}, {"n": 94, "texto": "Desenha figuras seguindo contornos ou pontilhados."}, {"n": 95, "texto": "Recorta ao longo de uma linha reta 20 cm, afastando-se pouco da linha."}], "4 a 5": [{"n": 96, "texto": "Fica em um só pé sem apoio por 4 a 8 segundos."}, {"n": 97, "texto": "Muda de direção ao correr."}, {"n": 98, "texto": "Anda sobre uma viga ou tábua, mantendo o equilíbrio."}, {"n": 99, "texto": "Pula para frente 10 vezes sem cair."}, {"n": 100, "texto": "Salta sobre uma corda suspensa a 5 cm do solo."}, {"n": 101, "texto": "Pula de costas 6 vezes."}, {"n": 102, "texto": "Rebate e apanha uma bola grande."}, {"n": 103, "texto": "Une 2 a 3 pedaços de massa de modelar."}, {"n": 104, "texto": "Recorta em torno de linhas curvas."}, {"n": 105, "texto": "Encaixa objetos de rosca."}, {"n": 106, "texto": "Desce escadas alternando os pés."}, {"n": 107, "texto": "Pedala um triciclo fazendo curvas."}, {"n": 108, "texto": "Salta em um só pé 5 vezes consecutivas."}, {"n": 109, "texto": "Recorta um círculo em 5 cm."}, {"n": 110, "texto": "Desenha figuras simples facilmente identificáveis (por ex: casa)."}, {"n": 111, "texto": "Recorta e cola formas simples."}], "5 a 6": [{"n": 112, "texto": "Escreve letras de imprensa maiusculas, isoladas e grandes em qualquer lugar do papel."}, {"n": 113, "texto": "Anda sobre uma tábua para trás, para frente e para os lados, mantendo o equilíbrio."}, {"n": 114, "texto": "Caminha saltitando."}, {"n": 115, "texto": "Balança em um balanço iniciando e mantendo o movimento."}, {"n": 116, "texto": "Estica os dedos tocando o polegar em cada um deles."}, {"n": 117, "texto": "Copia letras maiúsculas."}, {"n": 118, "texto": "Sobe em escadas de mão ou de escorregador de 3 m."}, {"n": 119, "texto": "Bate em um prego com martelo."}, {"n": 120, "texto": "Rebate a bola à medida que anda com direção."}, {"n": 121, "texto": "Consegue colorir sem sair da margem em 95% das vezes."}, {"n": 122, "texto": "Recorta figuras sem sair mais que 6 mm da margem."}, {"n": 123, "texto": "Usa apontador de lápis."}, {"n": 124, "texto": "Copia desenhos complexos (escola, navio)."}, {"n": 125, "texto": "Rasga figuras simples de um papel."}, {"n": 126, "texto": "Dobra um papel quadrado 2x em diagonal por imitação."}, {"n": 127, "texto": "Apanha uma bola leve com uma só mão."}, {"n": 128, "texto": "Pula corda sozinho."}, {"n": 129, "texto": "Golpeia uma bola com um bastão ou pedaço de pau."}, {"n": 130, "texto": "Apanha um objeto no chão enquanto corre."}, {"n": 131, "texto": "Patina uma distância de 3 m, ou usa skate."}, {"n": 132, "texto": "Anda de bicicleta."}, {"n": 133, "texto": "Escorrega descendo um monte de areia ou terra."}, {"n": 134, "texto": "Anda ou brinca em piscina tendo água até a cintura."}, {"n": 135, "texto": "Conduz um patinete dando impulso com um só pé."}, {"n": 136, "texto": "Salta e gira em um só pé."}, {"n": 137, "texto": "Escreve seu nome com letras de forma em caderno pautado."}, {"n": 138, "texto": "Salta de uma altura de 30 cm. e cai na ponta dos pés."}, {"n": 139, "texto": "Pára em um só pé sem apoio com olhos fechados por 10 segundos."}, {"n": 140, "texto": "Pendura-se por 10 segundos em uma barra horizontal."}]}};
+const AGES = ["0 a 1", "1 a 2", "2 a 3", "3 a 4", "4 a 5", "5 a 6"];
+
+const MOTOR_FINE = {'0 a 1': [1, 2, 3, 4, 5, 8, 17, 18, 26, 28, 29, 32, 38, 39, 40], '1 a 2': [48, 50, 51, 52, 53, 54, 63], '2 a 3': [64, 65, 70, 71, 72, 73, 74, 75, 77, 78, 80], '3 a 4': [81, 82, 93, 95], '4 a 5': [103, 104, 105, 109, 110, 111], '5 a 6': [112, 116, 117, 119, 121, 122, 123, 124, 125, 126, 137]};
+
+function montarPortageExibicao() {
+  const result = {};
+
+  for (const area of Object.keys(RAW_PORTAGE)) {
+    if (area !== 'Desenvolvimento motor') {
+      result[area] = RAW_PORTAGE[area];
+    }
+  }
+
+  result['Motora ampla'] = {};
+  result['Motora fina'] = {};
+
+  const motor = RAW_PORTAGE['Desenvolvimento motor'] || {};
+
+  for (const age of Object.keys(motor)) {
+    const fineNumbers = new Set(MOTOR_FINE[age] || []);
+    result['Motora fina'][age] = (motor[age] || []).filter(item => fineNumbers.has(Number(item.n)));
+    result['Motora ampla'][age] = (motor[age] || []).filter(item => !fineNumbers.has(Number(item.n)));
+  }
+
+  return result;
+}
+
+const PORTAGE = montarPortageExibicao();
+const AREAS = Object.keys(PORTAGE);
+const checks = {};
+
+const areasBox = document.getElementById('areas');
+const agesBox = document.getElementById('ages');
+const objetivos = document.getElementById('objetivos');
+const resultado = document.getElementById('resultado');
+
+for (const area of AREAS) {
+  const id = 'area_' + area.replace(/\W/g,'_');
+  const label = document.createElement('label');
+  label.className = 'age';
+  label.innerHTML = `<input type="checkbox" value="${area}" id="${id}"> ${area}`;
+  areasBox.appendChild(label);
+}
+
+for (const age of AGES) {
+  const id = 'age_' + age.replace(/\W/g,'_');
+  const label = document.createElement('label');
+  label.className = 'age';
+  label.innerHTML = `<input type="checkbox" value="${age}" id="${id}"> ${age}`;
+  agesBox.appendChild(label);
+}
+
+function selectedAreas() {
+  return [...areasBox.querySelectorAll('input:checked')].map(x => x.value);
+}
+
+function selectedAges() {
+  return [...agesBox.querySelectorAll('input:checked')].map(x => x.value);
+}
+
+function key(area, age, n) {
+  return area + '|' + age + '|' + n;
+}
+
+function mostrarItens() {
+  const selectedAreasNow = selectedAreas();
+  const selectedAgesNow = selectedAges();
+
+  if (!selectedAreasNow.length || !selectedAgesNow.length) {
+    objetivos.innerHTML = '<div class="card">Selecione pelo menos uma área e uma faixa etária.</div>';
+    resultado.innerHTML = '';
+    return;
+  }
+
+  let out = '';
+  for (const area of selectedAreasNow) {
+    out += `<div class="card"><h2 style="font-size:18px;">${escapeHtml(area)}</h2>`;
+
+    for (const age of selectedAgesNow) {
+      const list = (PORTAGE[area] && PORTAGE[area][age]) || [];
+      out += `<div class="age-title">${escapeHtml(age)}</div>`;
+
+      if (!list.length) {
+        out += '<div class="small">Não há itens localizados para esta combinação no documento.</div>';
+        continue;
+      }
+
+      for (const item of list) {
+        const k = key(area, age, item.n);
+        const checked = checks[k] ? 'checked' : '';
+        out += `<div class="item">
+          <div class="n">${String(item.n).padStart(2,'0')}</div>
+          <div>${escapeHtml(item.texto)}</div>
+          <label class="sim"><input type="checkbox" data-k="${escapeAttr(k)}" ${checked} onchange="setCheck(this)"> SIM</label>
+        </div>`;
+      }
+    }
+    out += '</div>';
+  }
+
+  objetivos.innerHTML = out;
+  atualizarResultado();
+}
+
+function setCheck(el) {
+  checks[el.dataset.k] = el.checked;
+  atualizarResultado();
+}
+
+function marcarTodos(valor) {
+  const selectedAreasNow = selectedAreas();
+  const selectedAgesNow = selectedAges();
+
+  for (const area of selectedAreasNow) {
+    for (const age of selectedAgesNow) {
+      for (const item of ((PORTAGE[area] || {})[age] || [])) {
+        checks[key(area, age, item.n)] = valor;
+      }
+    }
+  }
+  mostrarItens();
+}
+
+function limparTudo() {
+  for (const k of Object.keys(checks)) delete checks[k];
+  areasBox.querySelectorAll('input').forEach(x => x.checked = false);
+  agesBox.querySelectorAll('input').forEach(x => x.checked = false);
+  objetivos.innerHTML = '';
+  resultado.innerHTML = '';
+}
+
+function calcular(area, age) {
+  const list = (PORTAGE[area] && PORTAGE[area][age]) || [];
+  const total = list.length;
+  const sim = list.filter(item => checks[key(area, age, item.n)]).length;
+  const pct = total ? Math.round((sim / total) * 100) : 0;
+  return { total, sim, pct };
+}
+
+const tabelaAreas = {};
+
+function calcular(area, age) {
+  const list = (PORTAGE[area] && PORTAGE[area][age]) || [];
+  const total = list.length;
+  const sim = list.filter(item => checks[key(area, age, item.n)]).length;
+  const pct = total ? Math.round((sim / total) * 100) : 0;
+  return { total, sim, pct };
+}
+
+function adicionarAreaNaTabela() {
+  const areasSelecionadas = selectedAreas();
+  const idadesSelecionadas = selectedAges();
+
+  if (!areasSelecionadas.length || !idadesSelecionadas.length) {
+    alert('Selecione pelo menos uma área e uma faixa etária antes de adicionar à tabela.');
+    return;
+  }
+
+  for (const area of areasSelecionadas) {
+    // Acrescenta novas faixas à área sem apagar as que já estavam na tabela.
+    const atuais = tabelaAreas[area] || [];
+    const unidas = [...atuais, ...idadesSelecionadas.filter(age => !atuais.includes(age))];
+
+    // Mantém a ordem das faixas etárias do Portage.
+    tabelaAreas[area] = AGES.filter(age => unidas.includes(age));
+  }
+
+  atualizarTabelaFinal();
+}
+
+function atualizarResultado() {
+  // Mantém a tabela final independente da visualização dos objetivos.
+  atualizarTabelaFinal();
+}
+
+function atualizarTabelaFinal() {
+  const areasNaTabela = Object.keys(tabelaAreas);
+
+  if (!areasNaTabela.length) {
+    resultado.innerHTML = '<div class="small">As áreas adicionadas aparecerão aqui, uma por linha, no formato da tabela.</div>';
+    return;
+  }
+
+  // A tabela segue exatamente o modelo: Área | Idade | % | Idade | % | Idade | %.
+  // Cada área pode ter suas próprias faixas etárias.
+  const maxFaixas = Math.max(...areasNaTabela.map(area => tabelaAreas[area].length));
+
+  let head = '<tr><th>Área</th>';
+  for (let i = 0; i < maxFaixas; i++) {
+    head += '<th>Idade</th><th>%</th>';
+  }
+  head += '</tr>';
+
+  let body = '';
+  for (const area of areasNaTabela) {
+    const idades = tabelaAreas[area];
+    body += `<tr>`;
+    body += `<td contenteditable="true">${escapeHtml(area)}</td>`;
+
+    for (let i = 0; i < maxFaixas; i++) {
+      if (idades[i]) {
+        const r = calcular(area, idades[i]);
+        body += `<td contenteditable="true">${escapeHtml(idades[i])}</td>`;
+        body += `<td contenteditable="true">${r.pct}%</td>`;
+      } else {
+        body += '<td contenteditable="true"></td><td contenteditable="true"></td>';
+      }
+    }
+
+    body += '</tr>';
+  }
+
+  resultado.innerHTML = `<table id="tabelaPortageFinal" class="editable"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+
+function limparTudo() {
+  for (const k of Object.keys(checks)) delete checks[k];
+
+  for (const k of Object.keys(tabelaAreas)) delete tabelaAreas[k];
+
+  areasBox.querySelectorAll('input').forEach(x => x.checked = false);
+  agesBox.querySelectorAll('input').forEach(x => x.checked = false);
+
+  objetivos.innerHTML = '';
+  resultado.innerHTML = '';
+}
+
+async function copiarTabela() {
+  const table = document.getElementById('tabelaPortageFinal');
+
+  if (!table) {
+    alert('Adicione pelo menos uma área à tabela antes de copiar.');
+    return;
+  }
+
+  // Copia somente a tabela, sem título, instruções ou outros elementos.
+  const htmlTable = table.outerHTML;
+  const text = table.innerText;
+
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([htmlTable], {type:'text/html'}),
+        'text/plain': new Blob([text], {type:'text/plain'})
+      })
+    ]);
+    alert('Somente a tabela foi copiada.');
+  } catch(e) {
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-99999px';
+    container.appendChild(table.cloneNode(true));
+    document.body.appendChild(container);
+
+    const range = document.createRange();
+    range.selectNode(container.firstChild);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    container.remove();
+
+    alert('Somente a tabela foi copiada.');
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+</script>
+</body>
+</html>
