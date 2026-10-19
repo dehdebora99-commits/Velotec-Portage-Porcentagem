@@ -57,6 +57,36 @@
     .wrap { max-width:none; margin:0; padding:0; }
     .card { border:0; padding:0; }
   }
+
+/* Tema visual Velotec Abelhinhas — somente apresentação */
+:root{--mel:#ffbd38;--mel-claro:#fff1c8;--creme:#fff9e8;--marrom:#57301b;--borda-mel:#f2d28a}
+body{background:linear-gradient(135deg,#fff9e8 0%,#fff3d6 52%,#fff8e4 100%);color:#293548;min-height:100vh}
+.wrap{max-width:1200px;margin:24px auto;padding:0 18px 44px}
+.wrap>.card:first-child{position:relative;overflow:hidden;background-color:#fff8e4;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='170' viewBox='0 0 220 170'%3E%3Cg fill='none' stroke='%23ffbd38' stroke-width='3' stroke-opacity='.83'%3E%3Cpath d='M8 14 23 5 38 14 38 32 23 41 8 32Z M47 2 62 -7 77 2 77 20 62 29 47 20Z M85 14 100 5 115 14 115 32 100 41 85 32Z M-18 59 -3 50 12 59 12 77 -3 86 -18 77Z M18 105 33 96 48 105 48 123 33 132 18 123Z'/%3E%3C/g%3E%3C/svg%3E"),linear-gradient(115deg,#fff9e8,#fff1c8);background-repeat:no-repeat,no-repeat;background-position:left top,center;background-size:185px 143px,cover;border:1px solid #f2d28a;border-radius:19px;box-shadow:0 6px 20px rgba(148,105,28,.10);padding:27px 24px 23px}
+.wrap>.card:first-child>h1,.wrap>.card:first-child>.sub{position:relative;z-index:1}
+h1{color:var(--marrom);font-size:25px;font-weight:800}
+h1::after{content:' 🐝';font-size:.85em}
+h2,.area-title{color:var(--marrom)}
+.sub{color:#76543b;line-height:1.6}
+.card{background:rgba(255,253,248,.96);border:1px solid var(--borda-mel);border-radius:17px;padding:20px;margin-bottom:16px;box-shadow:0 5px 16px rgba(151,111,41,.08)}
+label.title{color:var(--marrom)}
+select{background:#fffefa;border:1px solid #e8ce98;border-radius:10px;padding:11px;color:#293548}
+select:focus{outline:2px solid rgba(255,189,56,.32);border-color:#e8a51c}
+.age{background:#fffdf7;border:1px solid #ead7aa;border-radius:11px;padding:10px 13px;transition:background .15s,border-color .15s}
+.age:hover{background:#fff4d8;border-color:#e8a51c}
+input[type=checkbox]{accent-color:#b87512}
+button{background:#713814;color:#fff;border-radius:11px;padding:11px 16px;font-weight:700;box-shadow:0 2px 5px rgba(93,54,21,.12);transition:filter .15s,transform .15s}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+button.secondary{background:#fff0c2;color:#63351d;border:1px solid #efcb76}
+.hint,.small,.item .n{color:#766d5e}
+.area-title{font-size:19px}
+.age-title{background:#fff1c8;border-left:5px solid #e8a51c;border-top:1px solid #f2d28a;border-bottom:1px solid #f2d28a;color:#684122;border-radius:8px}
+.item{border-bottom:1px solid #f0e5ce;padding:10px 5px}
+.item:hover{background:#fffaf0}
+.percent{color:#75420c}
+/* A tabela continua com o formato e a lógica originais */
+@media(max-width:700px){.wrap>.card:first-child{padding:21px 15px}h1{font-size:22px}.card{padding:15px}}
+@media print{body{background:#fff}.card{box-shadow:none}.wrap>.card:first-child{display:none!important}}
 </style>
 </head>
 <body>
