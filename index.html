@@ -265,19 +265,15 @@ function calcular(area, age) {
   const list = (PORTAGE[area] && PORTAGE[area][age]) || [];
   const total = list.length;
   const sim = list.filter(item => checks[key(area, age, item.n)]).length;
-  const pct = total ? Math.round((sim / total) * 100) : 0;
+  const percentual = total > 0 ? (sim / total) * 100 : 0;
+  const pct = Number(percentual.toFixed(1)).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1
+  });
   return { total, sim, pct };
 }
 
 const tabelaAreas = {};
 
-function calcular(area, age) {
-  const list = (PORTAGE[area] && PORTAGE[area][age]) || [];
-  const total = list.length;
-  const sim = list.filter(item => checks[key(area, age, item.n)]).length;
-  const pct = total ? Math.round((sim / total) * 100) : 0;
-  return { total, sim, pct };
-}
 
 function adicionarAreaNaTabela() {
   const areasSelecionadas = selectedAreas();
